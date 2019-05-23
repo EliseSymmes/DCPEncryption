@@ -9,8 +9,8 @@ a = random.uniform(-1.0, 1.0)
 coordLowerBound = -100.0
 coordUpperBound = 100.0
 dim = 3
-numNeighbors = 1000
-trials = 10000
+numNeighbors = 100
+trials = 100
 
 neighborhood = fn.genSetPoints(dim, numNeighbors, coordLowerBound, coordUpperBound)
 encNeighborhood = fn.encryptArr(neighborhood, s, a)

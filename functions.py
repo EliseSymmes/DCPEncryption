@@ -23,7 +23,7 @@ def p(pnt, s, a):
     for i in pnt:
         total += i
     random.seed(total + s + a)
-    normal = random.uniform(0, s*a/4)
+    normal = random.uniform(0, math.fabs(s*a/4))
     weights = np.random.rand(len(pnt))
     normal *= normal
     weightsTotal = 0.0
@@ -32,6 +32,8 @@ def p(pnt, s, a):
     ret = np.zeros(shape=pnt.shape)
     for i in range(0, len(ret)):
         ret[i] = math.sqrt(normal*(weights[i]/weightsTotal))
+        if random.randrange(0, 2) == 1:
+            ret[i] *= -1
     return ret
 
 
