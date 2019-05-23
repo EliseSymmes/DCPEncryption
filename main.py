@@ -2,6 +2,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plot
 import functions as fn
+import math
 
 s = random.uniform(-2.0, 2.0)
 a = random.uniform(-1.0, 1.0)
@@ -26,10 +27,15 @@ for i in range(0, trials):
         numSame += 1
     else:
         numDif += 1
-        offBy[i] = fn.distance(neighborhood[normNeighbor], neighborhood[encNeighbor])
-        offByEnc[i] = fn.distance(encNeighborhood[normNeighbor], encNeighborhood[encNeighbor])
-offBy = offBy.take(offBy.nonzero()).reshape(numDif)
-offByEnc = offByEnc.take(offByEnc.nonzero()).reshape(numDif)
-print(numDif, "errors from", trials, "trials")
-plot.hist(offByEnc)
-plot.show()
+        offBy[i] = math.fabs(fn.distance(point, neighborhood[normNeighbor]
+                                         - fn.distance(point, neighborhood[encNeighbor])))
+        offByEnc[i] = -1 * math.fabs(fn.distance(point, encNeighborhood[normNeighbor]
+                                                 - fn.distance(point, encNeighborhood[encNeighbor])))
+print("Error rate of", str(float(numDif)*100.0/trials) + "%")
+if numDif > 0:
+    offBy = offBy.take(offBy.nonzero()).reshape(numDif)
+    plot.hist(offBy, color='blue')
+    plot.suptitle("Distance from correct neighbor to selected neighbor\n" +
+                  str(numDif) + " errors from " + str(trials) + " trials within "
+                  + str(coordUpperBound - coordLowerBound) + " side length cube")
+    plot.show()
