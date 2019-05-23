@@ -1,1 +1,2 @@
-# DCPEncryption requires numpy and matplotlib
+# DCPEncryption
+Requires numpy and matplotlib
