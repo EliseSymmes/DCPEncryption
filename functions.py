@@ -23,13 +23,23 @@ def p(pnt, s, a):
     for i in pnt:
         total += i
     random.seed(total + s + a)
-    return random.uniform(-s*a/4, s*a/4)
+    normal = random.uniform(0, s*a/4)
+    weights = np.random.rand(len(pnt))
+    normal *= normal
+    weightsTotal = 0.0
+    for i in weights:
+        weightsTotal += i
+    ret = np.zeros(shape=pnt.shape)
+    for i in range(0, len(ret)):
+        ret[i] = math.sqrt(normal*(weights[i]/weightsTotal))
+    return ret
 
 
 def encryptSingle(x, s, a):
     ret = np.zeros(shape=x.shape)
+    pVals = p(x, s, a)
     for i in range(0, len(x)):
-        ret[i] = x[i] * s + p(x, s, a)
+        ret[i] = x[i] * s + pVals[i]
     return ret
 
 
