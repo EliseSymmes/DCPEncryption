@@ -47,9 +47,8 @@ def distance(pointA, pointB):
     for i in range(len(pointA)):
         dimDif = pointA[i] - pointB[i]
         dimDif *= dimDif
-        dimDif = math.sqrt(dimDif)
         dist += dimDif
-    return dist
+    return math.sqrt(dist)
 
 
 def nearestNeighbor(point, neighbors):
