@@ -88,7 +88,7 @@ def plotPDist(num):
     plot.show()
 
 
-def plotErrorDistance(s, a, coordSize, dim, numNeighbors, trials):
+def plotErrorDistance(s, a, coordSize, dim, numNeighbors, trials, logScale=False, exclZeros=True, draw=True):
     neighborhood = genSetPoints(dim, numNeighbors, coordSize)
     encNeighborhood = encryptArr(neighborhood, s, a)
     offBy = np.zeros(shape=trials)
@@ -102,9 +102,10 @@ def plotErrorDistance(s, a, coordSize, dim, numNeighbors, trials):
             numDif += 1
             offBy[i] = math.fabs(distance(point, neighborhood[normNeighbor]
                                           - distance(point, neighborhood[encNeighbor])))
-    if numDif > 0:
-        offBy = offBy.take(offBy.nonzero()).reshape(numDif)
-        plot.hist(offBy, color='blue')
+    if draw and (numDif > 0 or not exclZeros):
+        if exclZeros:
+            offBy = offBy.take(offBy.nonzero()).reshape(numDif)
+        plot.hist(offBy, color='blue', log=logScale)
         plot.suptitle("Distance from correct neighbor to selected neighbor\n" +
                       str(numDif) + " errors from " + str(trials) + " trials within "
                       + str(coordSize) + " side length cube")
