@@ -26,6 +26,7 @@ def p(pnt, s, a):
     random.seed(total + s + a)
     normal = random.uniform(0, math.fabs(s * a / 4))
     normal *= normal
+    np.random.seed(int(math.fabs(total + s + a)))
     weights = np.random.rand(len(pnt))
     weightsTotal = 0.0
     for i in weights:
@@ -88,11 +89,17 @@ def plotPDist(num):
     plot.show()
 
 
-def plotErrorDistance(s, a, coordSize, dim, numNeighbors, trials, logScale=False, exclZeros=True, draw=True):
-    neighborhood = genSetPoints(dim, numNeighbors, coordSize)
+def plotErrorDistance(s, a, coordSize, dim, trials,
+                      logScale=False, exclZeros=True, draw=True, neighborhood=None, numNeighbors=100):
+    if neighborhood is None and numNeighbors is not None:
+        neighborhood = genSetPoints(dim, numNeighbors, coordSize)
+    elif numNeighbors is None:
+        print("Exactly one of neighborhood or numNeighbors must be provided")
+        return
     encNeighborhood = encryptArr(neighborhood, s, a)
     offBy = np.zeros(shape=trials)
     numDif = 0
+    print(len(neighborhood))
     for i in range(0, trials):
         point = genPoint(dim, coordSize)
         encPoint = encryptSingle(point, s, a)
@@ -106,8 +113,8 @@ def plotErrorDistance(s, a, coordSize, dim, numNeighbors, trials, logScale=False
         if exclZeros:
             offBy = offBy.take(offBy.nonzero()).reshape(numDif)
         plot.hist(offBy, color='blue', log=logScale)
-        plot.suptitle("Distance from correct neighbor to selected neighbor\n" +
+        plot.suptitle("Error distance ith s = " + str(s) + ", a = " +str(a) + "\n" +
                       str(numDif) + " errors from " + str(trials) + " trials within "
-                      + str(coordSize) + " side length cube")
+                      + str(coordSize) + " side length cube with " + str(len(neighborhood)) + " neighbors")
         plot.show()
-    return numDif
+    return float((numDif/trials)*100)
