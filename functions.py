@@ -118,3 +118,18 @@ def plotErrorDistance(s, a, coordSize, dim, trials,
                       + str(coordSize) + " side length cube with " + str(len(neighborhood)) + " neighbors")
         plot.show()
     return float((numDif/trials)*100)
+
+
+def numberOverlap(neighborhood, alpha):
+    numOverlap = 0
+    status = np.full(len(neighborhood), False)
+    for i in range(0, len(neighborhood)):
+        for j in range(i + 1, len(neighborhood)):
+            if distance(neighborhood[i], neighborhood[j]) <= alpha / 4:
+                if not status[j]:
+                    numOverlap += 1
+                    status[j] = True
+                if not status[i]:
+                    numOverlap += 1
+                    status[i] = True
+    return numOverlap
