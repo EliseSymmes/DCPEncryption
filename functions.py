@@ -125,7 +125,7 @@ def numberOverlap(neighborhood, alpha):
     status = np.full(len(neighborhood), False)
     for i in range(0, len(neighborhood)):
         for j in range(i + 1, len(neighborhood)):
-            if distance(neighborhood[i], neighborhood[j]) <= alpha / 4:
+            if distance(neighborhood[i], neighborhood[j]) <= alpha / 2:
                 if not status[j]:
                     numOverlap += 1
                     status[j] = True
@@ -133,3 +133,31 @@ def numberOverlap(neighborhood, alpha):
                     numOverlap += 1
                     status[i] = True
     return numOverlap
+
+
+def scatter2d(x, alpha=0, enc=False):
+    if 2 != (len(x[0])):
+        print("wrong dimensions", len(x[0]))
+        return
+    xCoord = np.zeros(shape=len(x))
+    yCoord = np.zeros(shape=len(x))
+    for i in range(0, len(x)):
+        xCoord[i] = x[i][0]
+        yCoord[i] = x[i][1]
+    boundUp = max(max(xCoord), max(yCoord))
+    boundDw = min(min(xCoord), min(yCoord))
+    area = ((alpha / (boundUp - boundDw)) * np.full(shape=len(x), fill_value=143)) ** 2
+    dotArea = ((alpha / (boundUp - boundDw)) * np.full(shape=len(x), fill_value=10)) ** 2
+    plot.axis([boundDw, boundUp*1.25, boundDw, boundUp])
+    if alpha != 0:
+        plot.scatter(xCoord, yCoord, s=area, c='black', alpha=0.2)
+        if enc:
+            encXCoord = np.zeros(shape=len(x))
+            encYCoord = np.zeros(shape=len(x))
+            encSet = encryptArr(x, 1, alpha)
+            for i in range(0, len(x)):
+                encXCoord[i] = encSet[i][0]
+                encYCoord[i] = encSet[i][1]
+            plot.scatter(encXCoord, encYCoord, s=dotArea, c='blue', alpha=1)
+    plot.scatter(xCoord, yCoord, s=2*dotArea, c='black', alpha=1)
+    plot.show()
