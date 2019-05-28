@@ -161,3 +161,13 @@ def scatter2d(x, alpha=0, enc=False):
             plot.scatter(encXCoord, encYCoord, s=dotArea, c='blue', alpha=1)
     plot.scatter(xCoord, yCoord, s=2*dotArea, c='black', alpha=1)
     plot.show()
+
+
+def internalNN(neighborhood):
+    ret = np.full(shape=len(neighborhood), fill_value=-1)
+    for i in range(0, len(neighborhood)):
+        ret[i] = nearestNeighbor(neighborhood[i], np.delete(neighborhood, i, 0))
+        if ret[i] >= i:
+            ret[i] += 1
+    return ret
+
