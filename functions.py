@@ -1,75 +1,68 @@
-import random
 import numpy as np
 import sys
 import math
 import matplotlib.pyplot as plot
+import scipy.spatial.distance as distance
 
 
-def genPoint(d, coordSize):
+def keygen(sigma):
+    np.random.seed()
+    alpha = np.random.uniform(0.2, 1.0)
+    sigmaStar = 0.0
+    while sigmaStar <= 0.0:
+        sigmaStar = np.random.normal(0.0, sigma * sigma)
+    s = 0.0
+    while s <= 0.0:
+        s = np.random.normal(0.0, sigmaStar)
+    return s, alpha, sigmaStar
+
+
+def genPoint(d, lower, upper):
     x = np.zeros(shape=d)
     for i in range(0, d):
-        x[i] = random.uniform(-1 * coordSize / 2, coordSize / 2)
+        x[i] = np.random.uniform(lower, upper)
     return x
 
 
-def genSetPoints(d, num, coordSize):
+def genSetPoints(d, num, lower, upper):
     ret = np.zeros(shape=(num, d))
     for i in range(0, num):
-        ret[i] = genPoint(d, coordSize)
+        ret[i] = genPoint(d, lower, upper)
     return ret
 
 
-def p(pnt, s, a):
+def p(pnt, s, a, sigmaStar):
     total = 0.0
     for i in pnt:
         total += i
-    random.seed(total + s + a)
-    normal = random.uniform(0, math.fabs(s * a / 4))
-    normal *= normal
-    np.random.seed(int(math.fabs(total + s + a)))
-    weights = np.random.rand(len(pnt))
-    weightsTotal = 0.0
-    for i in weights:
-        weightsTotal += i
-    ret = np.zeros(shape=pnt.shape)
+    ret = np.full(shape=pnt.shape, fill_value=sys.float_info.max)
+    np.random.seed(int(math.trunc(total*1000) + s + a))
     for i in range(0, len(ret)):
-        ret[i] = math.sqrt(normal * (weights[i] / weightsTotal))
-        if random.randrange(0, 2) == 1:
-            ret[i] *= -1
+        while math.fabs(ret[i]) > s * a / (math.sqrt(len(pnt)) * 4):
+            ret[i] = np.random.normal(0.0, sigmaStar)
     return ret
 
 
-def encryptSingle(x, s, a):
+def encryptSingle(x, s, a, sigmaStar):
     ret = np.zeros(shape=x.shape)
-    pVal = p(x, s, a)
+    pVal = p(x, s, a, sigmaStar)
     for i in range(0, len(x)):
         ret[i] = x[i] * s + pVal[i]
     return ret
 
 
-def encryptArr(x, s, a):
+def encryptArr(x, s, a, sigmaStar):
     encX = np.zeros(shape=x.shape)
     for i in range(0, len(x)):
-        encX[i] = encryptSingle(x[i], s, a)
+        encX[i] = encryptSingle(x[i], s, a, sigmaStar)
     return encX
-
-
-def distance(pointA, pointB):
-    if len(pointA) != len(pointB):
-        return
-    dist = 0.0
-    for i in range(len(pointA)):
-        dimDif = pointA[i] - pointB[i]
-        dimDif *= dimDif
-        dist += dimDif
-    return math.sqrt(dist)
 
 
 def nearestNeighbor(point, neighbors):
     nearestDist = sys.float_info.max
     nearestIndex = -1
     for n in range(0, len(neighbors)):
-        dist = distance(point, neighbors[n])
+        dist = distance.euclidean(point, neighbors[n])
         if dist < nearestDist:
             nearestIndex = n
             nearestDist = dist
@@ -79,45 +72,43 @@ def nearestNeighbor(point, neighbors):
 def plotPDist(num):
     portions = np.zeros(shape=num)
     for i in range(0, num):
-        s = random.uniform(-2.0, 2.0)
-        a = random.uniform(-1.0, 1.0)
-        x = genPoint(3, 10)
-        pVal = p(x, s, a)
+        s, a, sigmaStar = keygen(50)
+        x = genPoint(2, 0, 15)
+        pVal = p(x, s, a, sigmaStar)
         portions[i] = math.fabs((np.linalg.norm(pVal) - math.fabs(s * a / 4)) / (s * a / 4))
     plot.hist(portions)
     plot.suptitle("Distribution of p values divided by sa/4")
     plot.show()
 
 
-def plotErrorDistance(s, a, coordSize, dim, trials,
-                      logScale=False, exclZeros=True, draw=True, neighborhood=None, numNeighbors=100):
-    if neighborhood is None and numNeighbors is not None:
-        neighborhood = genSetPoints(dim, numNeighbors, coordSize)
-    elif numNeighbors is None:
-        print("Exactly one of neighborhood or numNeighbors must be provided")
-        return
-    encNeighborhood = encryptArr(neighborhood, s, a)
-    offBy = np.zeros(shape=trials)
-    numDif = 0
-    print(len(neighborhood))
-    for i in range(0, trials):
-        point = genPoint(dim, coordSize)
-        encPoint = encryptSingle(point, s, a)
-        normNeighbor = nearestNeighbor(point, neighborhood)
-        encNeighbor = nearestNeighbor(encPoint, encNeighborhood)
-        if normNeighbor != encNeighbor:
-            numDif += 1
-            offBy[i] = math.fabs(distance(point, neighborhood[normNeighbor]
-                                          - distance(point, neighborhood[encNeighbor])))
-    if draw and (numDif > 0 or not exclZeros):
-        if exclZeros:
-            offBy = offBy.take(offBy.nonzero()).reshape(numDif)
-        plot.hist(offBy, color='blue', log=logScale)
-        plot.suptitle("Error distance ith s = " + str(s) + ", a = " +str(a) + "\n" +
-                      str(numDif) + " errors from " + str(trials) + " trials within "
-                      + str(coordSize) + " side length cube with " + str(len(neighborhood)) + " neighbors")
-        plot.show()
-    return float((numDif/trials)*100)
+def getNeighbors(query, neighborhood, s, a, sigmaStar):
+    normNeighbors = np.zeros(shape=len(query))
+    encNeighbors = np.zeros(shape=len(query))
+    encQuery = encryptArr(query, s, a, sigmaStar)
+    encNeighborhood = encryptArr(neighborhood, s, a, sigmaStar)
+    for i in range(0, len(query)):
+        normNeighbors[i] = int(nearestNeighbor(query[i], neighborhood))
+        encNeighbors[i] = int(nearestNeighbor(encQuery[i], encNeighborhood))
+    return normNeighbors, encNeighbors
+
+
+def errorDistance(query, neighborhood, s, a, sigmaStar):
+    norm, enc = getNeighbors(query, neighborhood, s, a, sigmaStar)
+    errorDist = np.zeros(shape=len(query))
+    for i in range(0, len(query)):
+        if norm[i] != enc[i]:
+            errorDist[i] = distance.euclidean(neighborhood[int(norm[i])], neighborhood[int(enc[i])])
+    return errorDist
+
+
+def noZerosPlease(values):
+    j = 0
+    for i in range(0, len(values)):
+        if values[j] == 0.0:
+            values = np.delete(values, j, 0)
+        else:
+            j += 1
+    return values
 
 
 def numberOverlap(neighborhood, alpha):
@@ -125,7 +116,7 @@ def numberOverlap(neighborhood, alpha):
     status = np.full(len(neighborhood), False)
     for i in range(0, len(neighborhood)):
         for j in range(i + 1, len(neighborhood)):
-            if distance(neighborhood[i], neighborhood[j]) <= alpha / 2:
+            if distance.euclidean(neighborhood[i], neighborhood[j]) <= alpha / 2:
                 if not status[j]:
                     numOverlap += 1
                     status[j] = True
@@ -170,4 +161,3 @@ def internalNN(neighborhood):
         if ret[i] >= i:
             ret[i] += 1
     return ret
-
