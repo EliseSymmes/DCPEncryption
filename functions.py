@@ -10,10 +10,10 @@ def keygen(sigma):
     alpha = np.random.uniform(0.2, 1.0)
     sigmaStar = 0.0
     while sigmaStar <= 0.0:
-        sigmaStar = np.random.normal(0.0, sigma * sigma)
+        sigmaStar = np.random.normal(0.0, math.sqrt(sigma))
     s = 0.0
     while s <= 0.0:
-        s = np.random.normal(0.0, sigmaStar)
+        s = np.random.normal(0.0, math.sqrt(sigmaStar))
     return s, alpha, sigmaStar
 
 
@@ -39,7 +39,7 @@ def p(pnt, s, a, sigmaStar):
     np.random.seed(int(math.fabs(math.trunc(total * 1000) + s + a)))
     for i in range(0, len(ret)):
         while math.fabs(ret[i]) > s * a / (math.sqrt(len(pnt)) * 4):
-            ret[i] = np.random.normal(0.0, sigmaStar)
+            ret[i] = np.random.normal(0.0, math.sqrt(sigmaStar))
     return ret
 
 

@@ -8,8 +8,8 @@ querySize = 150
 neighborSize = 2000
 sigmaLower = 1
 sigmaUpper = 50
-trials = 50
-rateSigma, distSigma = fn.statsSigmaRange(cal, querySize, neighborSize, sigmaLower, sigmaUpper, trials)
+trialsPerSigma = 50
+rateSigma, distSigma = fn.statsSigmaRange(cal, querySize, neighborSize, sigmaLower, sigmaUpper, trialsPerSigma)
 rateIndex = np.argmin(rateSigma)
 errorIndex = np.argmin(distSigma)
 print("Min error rate at", rateIndex, "with value", rateSigma[rateIndex],
