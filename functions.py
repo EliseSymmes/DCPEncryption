@@ -126,10 +126,11 @@ def numberOverlap(neighborhood, alpha):
     return numOverlap
 
 
-def scatter2d(x, alpha=0, enc=False):
+def scatter2d(x, sigma=50, enc=False):
     if 2 != (len(x[0])):
         print("wrong dimensions", len(x[0]))
         return
+    s, alpha, sigmaStar = keygen(sigma)
     xCoord = np.zeros(shape=len(x))
     yCoord = np.zeros(shape=len(x))
     for i in range(0, len(x)):
@@ -145,7 +146,7 @@ def scatter2d(x, alpha=0, enc=False):
         if enc:
             encXCoord = np.zeros(shape=len(x))
             encYCoord = np.zeros(shape=len(x))
-            encSet = encryptArr(x, 1, alpha)
+            encSet = encryptArr(x, 1, alpha, sigmaStar)
             for i in range(0, len(x)):
                 encXCoord[i] = encSet[i][0]
                 encYCoord[i] = encSet[i][1]
@@ -177,3 +178,28 @@ def splitArr(arr, sample1, sample2, replacement=False):
         if not replacement:
             arr = np.delete(arr, k, 0)
     return ret1, ret2
+
+
+def statsTrials(trials, sigma, query, neighbors):
+    errorRate = np.zeros(shape=trials)
+    errorDist = np.zeros(shape=trials)
+    for trial in range(0, trials):
+        s, a, sigmaStar = keygen(sigma)
+        errorDists = errorDistance(query, neighbors, s, a, sigmaStar)
+        noZeros = noZerosPlease(errorDists)
+        errorRate[trial] = len(noZeros) / len(errorDists)
+        errorDist[trial] = np.mean(errorDists)
+        print("\rTrial " + str(trial) + " with sigma " + str(sigma) + " complete", end='')
+    return errorRate, errorDist
+
+
+def statsSigmaRange(points, querySize, neighborsSize, sigmaLower, sigmaUpper, trials):
+    query, neighbors = splitArr(points, querySize, neighborsSize)
+    distSigma = np.zeros(shape=50)
+    rateSigma = np.zeros(shape=50)
+    for sigma in range(sigmaLower, sigmaUpper+1):
+        errorRate, meanError = statsTrials(trials, sigma, query, neighbors)
+        distSigma[sigma] = np.mean(meanError)
+        rateSigma[sigma] = np.mean(errorRate)
+        print("\nSigma =", sigma, "\nMean Error Rate:", rateSigma[sigma], "\nMean Mean Error:", distSigma[sigma])
+    return rateSigma, distSigma
