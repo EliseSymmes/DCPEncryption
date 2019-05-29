@@ -36,7 +36,7 @@ def p(pnt, s, a, sigmaStar):
     for i in pnt:
         total += i
     ret = np.full(shape=pnt.shape, fill_value=sys.float_info.max)
-    np.random.seed(int(math.trunc(total*1000) + s + a))
+    np.random.seed(int(math.fabs(math.trunc(total * 1000) + s + a)))
     for i in range(0, len(ret)):
         while math.fabs(ret[i]) > s * a / (math.sqrt(len(pnt)) * 4):
             ret[i] = np.random.normal(0.0, sigmaStar)
@@ -139,7 +139,7 @@ def scatter2d(x, alpha=0, enc=False):
     boundDw = min(min(xCoord), min(yCoord))
     area = ((alpha / (boundUp - boundDw)) * np.full(shape=len(x), fill_value=143)) ** 2
     dotArea = ((alpha / (boundUp - boundDw)) * np.full(shape=len(x), fill_value=10)) ** 2
-    plot.axis([boundDw, boundUp*1.25, boundDw, boundUp])
+    plot.axis([boundDw, boundUp * 1.25, boundDw, boundUp])
     if alpha != 0:
         plot.scatter(xCoord, yCoord, s=area, c='black', alpha=0.2)
         if enc:
@@ -150,7 +150,7 @@ def scatter2d(x, alpha=0, enc=False):
                 encXCoord[i] = encSet[i][0]
                 encYCoord[i] = encSet[i][1]
             plot.scatter(encXCoord, encYCoord, s=dotArea, c='blue', alpha=1)
-    plot.scatter(xCoord, yCoord, s=2*dotArea, c='black', alpha=1)
+    plot.scatter(xCoord, yCoord, s=2 * dotArea, c='black', alpha=1)
     plot.show()
 
 
@@ -161,3 +161,19 @@ def internalNN(neighborhood):
         if ret[i] >= i:
             ret[i] += 1
     return ret
+
+
+def splitArr(arr, sample1, sample2, replacement=False):
+    ret1 = np.zeros(shape=(sample1, len(arr[0])))
+    ret2 = np.zeros(shape=(sample2, len(arr[0])))
+    for i in range(0, sample1):
+        k = int(math.trunc(np.random.uniform(0, len(arr))))
+        ret1[i] = arr[k]
+        if replacement:
+            arr = np.delete(arr, k, 0)
+    for i in range(0, sample2):
+        k = int(math.trunc(np.random.uniform(0, len(arr))))
+        ret2[i] = arr[k]
+        if not replacement:
+            arr = np.delete(arr, k, 0)
+    return ret1, ret2
