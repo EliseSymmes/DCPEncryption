@@ -155,15 +155,6 @@ def scatter2d(x, sigma=50, enc=False):
     plot.show()
 
 
-def internalNN(neighborhood):
-    ret = np.full(shape=len(neighborhood), fill_value=-1)
-    for i in range(0, len(neighborhood)):
-        ret[i] = nearestNeighbor(neighborhood[i], np.delete(neighborhood, i, 0))
-        if ret[i] >= i:
-            ret[i] += 1
-    return ret
-
-
 def splitArr(arr, sample1, sample2, replacement=False):
     ret1 = np.zeros(shape=(sample1, len(arr[0])))
     ret2 = np.zeros(shape=(sample2, len(arr[0])))
@@ -189,17 +180,26 @@ def statsTrials(trials, sigma, query, neighbors):
         noZeros = noZerosPlease(errorDists)
         errorRate[trial] = len(noZeros) / len(errorDists)
         errorDist[trial] = np.mean(errorDists)
-        print("\rTrial " + str(trial) + " with sigma " + str(sigma) + " complete", end='')
+        print("\rTrial " + str(trial+1) + " with sigma " + str(sigma) + " complete", end='')
     return errorRate, errorDist
 
 
-def statsSigmaRange(points, querySize, neighborsSize, sigmaLower, sigmaUpper, trials):
+def statsSigmaRange(points, querySize, neighborsSize, sigmaLower, sigmaUpper, trials, step):
+    if querySize + neighborsSize > len(points):
+        print("Invalid sizing")
+        return
+    sigmaRange = 1+sigmaUpper-sigmaLower
+    distSigma = np.zeros(shape=int(1 + math.trunc(sigmaRange / step)))
+    rateSigma = np.zeros(shape=int(1 + math.trunc(sigmaRange / step)))
+    sigma = sigmaLower
+    i = 0
     query, neighbors = splitArr(points, querySize, neighborsSize)
-    distSigma = np.zeros(shape=50)
-    rateSigma = np.zeros(shape=50)
-    for sigma in range(sigmaLower, sigmaUpper+1):
+    while sigma <= sigmaUpper:
         errorRate, meanError = statsTrials(trials, sigma, query, neighbors)
-        distSigma[sigma] = np.mean(meanError)
-        rateSigma[sigma] = np.mean(errorRate)
-        print("\nSigma =", sigma, "\nMean Error Rate:", rateSigma[sigma], "\nMean Mean Error:", distSigma[sigma])
+        distSigma[i] = np.mean(meanError)
+        rateSigma[i] = np.mean(errorRate)
+        print("\nSigma =", sigma, "\nMean Error Rate:", rateSigma[i],
+              "\nMean Error Distance:", distSigma[i])
+        sigma += step
+        i += 1
     return rateSigma, distSigma
