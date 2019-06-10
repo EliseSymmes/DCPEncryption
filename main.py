@@ -7,22 +7,34 @@ cal = np.delete(np.loadtxt("C:\\Users\\Elise\\PycharmProjects\\DCPEncryption\\ve
 iris = np.delete(np.loadtxt("C:\\Users\\Elise\\PycharmProjects\\DCPEncryption\\venv\\iris.txt"), 0, 1)
 querySize = 25
 neighborSize = 125
-sigmaLower = 20
-sigmaUpper = 2000
-trialsPerSigma = 200
-step = 20
-rateSigma, distSigma = fn.statsSigmaRange(iris, querySize, neighborSize, sigmaLower, sigmaUpper, trialsPerSigma, step)
-rateIndex = np.argmin(rateSigma)
-errorIndex = np.argmin(distSigma)
-axis = np.zeros(shape=len(rateSigma))
-for i in range(0, len(rateSigma)):
-    axis[i] = sigmaLower + i * step
-print("Min error rate at", axis[rateIndex], "with value", rateSigma[rateIndex],
-      "\nMin mean error distance at", axis[errorIndex], "with value", distSigma[errorIndex])
-plot.scatter(axis, rateSigma)
-plot.title("Error rate as a function of sigma")
+neighborSizes = [25, 50, 75, 100, 125]
+sigmaLower = 0.1
+sigmaUpper = 3
+trials = 10
+step = 0.1
+ratesNeigh, distsNeigh = fn.statsNeighborRange(cal, 50, 25, neighborSizes, trials)
+ratesMean = np.zeros(shape=len(neighborSizes))
+distsMean = np.zeros(shape=len(neighborSizes))
+for i in range(0, len(neighborSizes)):
+    ratesMean[i] = np.mean(ratesNeigh[i])
+    distsMean[i] = np.mean(distsNeigh[i])
+plot.scatter(neighborSizes, ratesMean)
+plot.title("Error rate as a function of neighbor size")
 plot.show()
 plot.clf()
-plot.scatter(axis, distSigma)
-plot.title("Mean distance of error as a function of sigma")
+plot.scatter(neighborSizes, distsMean)
+plot.title("Mean distance of error as a function of neighbor size")
 plot.show()
+# rateSigma, distSigma = fn.statsSigmaRange(iris, querySize, neighborSize, sigmaLower, sigmaUpper, trials, step)
+# rateIndex = np.argmin(rateSigma)
+# errorIndex = np.argmin(distSigma)
+# axis = np.zeros(shape=len(rateSigma))
+# for i in range(0, len(rateSigma)):
+#     axis[i] = sigmaLower + i * step
+# plot.scatter(axis, rateSigma)
+# plot.title("Error rate as a function of sigma")
+# plot.show()
+# plot.clf()
+# plot.scatter(axis, distSigma)
+# plot.title("Mean distance of error as a function of sigma")
+# plot.show()

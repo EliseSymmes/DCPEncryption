@@ -156,6 +156,9 @@ def scatter2d(x, sigma=50, enc=False):
 
 
 def splitArr(arr, sample1, sample2, replacement=False):
+    if sample1 + sample2 > len(arr) and not replacement:
+        print("Invalid sizing")
+        return
     ret1 = np.zeros(shape=(sample1, len(arr[0])))
     ret2 = np.zeros(shape=(sample2, len(arr[0])))
     for i in range(0, sample1):
@@ -184,13 +187,24 @@ def statsTrials(trials, sigma, query, neighbors):
     return errorRate, errorDist
 
 
+def statsTrialsSplit(trials, sigma, points, querySize, neighborSize):
+    errorRate = np.zeros(shape=trials)
+    errorDist = np.zeros(shape=trials)
+    for trial in range(0, trials):
+        query, neighbors = splitArr(points, querySize, neighborSize)
+        s, a, sigmaStar = keygen(sigma)
+        errorDists = errorDistance(query, neighbors, s, a, sigmaStar)
+        noZeros = noZerosPlease(errorDists)
+        errorRate[trial] = len(noZeros) / len(errorDists)
+        errorDist[trial] = np.mean(errorDists)
+        print("\rTrial " + str(trial+1) + " with neighbors " + str(neighborSize) + " complete", end='')
+    return errorRate, errorDist
+
+
 def statsSigmaRange(points, querySize, neighborsSize, sigmaLower, sigmaUpper, trials, step):
-    if querySize + neighborsSize > len(points):
-        print("Invalid sizing")
-        return
-    sigmaRange = 1+sigmaUpper-sigmaLower
-    distSigma = np.zeros(shape=int(1 + math.trunc(sigmaRange / step)))
-    rateSigma = np.zeros(shape=int(1 + math.trunc(sigmaRange / step)))
+    sigmaRange = sigmaUpper-sigmaLower
+    distSigma = np.zeros(shape=1+int(math.trunc(sigmaRange / step)))
+    rateSigma = np.zeros(shape=1+int(math.trunc(sigmaRange / step)))
     sigma = sigmaLower
     i = 0
     query, neighbors = splitArr(points, querySize, neighborsSize)
@@ -203,3 +217,12 @@ def statsSigmaRange(points, querySize, neighborsSize, sigmaLower, sigmaUpper, tr
         sigma += step
         i += 1
     return rateSigma, distSigma
+
+
+def statsNeighborRange(points, sigma, querySize, neighborSizes, trials):
+    rates = np.zeros(shape=(len(neighborSizes), trials))
+    dists = np.zeros(shape=(len(neighborSizes), trials))
+    for i in range(0, len(neighborSizes)):
+        rates[i], dists[i] = statsTrialsSplit(trials, sigma, points, querySize, neighborSizes[i])
+        print("\n", neighborSizes[i], "complete")
+    return rates, dists
