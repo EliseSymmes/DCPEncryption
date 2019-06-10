@@ -7,7 +7,7 @@ cal = np.delete(np.loadtxt("C:\\Users\\Elise\\PycharmProjects\\DCPEncryption\\ve
 iris = np.delete(np.loadtxt("C:\\Users\\Elise\\PycharmProjects\\DCPEncryption\\venv\\iris.txt"), 0, 1)
 querySize = 25
 neighborSize = 125
-neighborSizes = [25, 50, 75, 100, 125]
+neighborSizes = fn.makeArr(10, 10, 10)
 sigmaLower = 0.1
 sigmaUpper = 3
 trials = 10
@@ -20,10 +20,6 @@ for i in range(0, len(neighborSizes)):
     distsMean[i] = np.mean(distsNeigh[i])
 plot.scatter(neighborSizes, ratesMean)
 plot.title("Error rate as a function of neighbor size")
-plot.show()
-plot.clf()
-plot.scatter(neighborSizes, distsMean)
-plot.title("Mean distance of error as a function of neighbor size")
 plot.show()
 # rateSigma, distSigma = fn.statsSigmaRange(iris, querySize, neighborSize, sigmaLower, sigmaUpper, trials, step)
 # rateIndex = np.argmin(rateSigma)

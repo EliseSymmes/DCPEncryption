@@ -5,6 +5,13 @@ import matplotlib.pyplot as plot
 import scipy.spatial.distance as distance
 
 
+def makeArr(step, min, iterations):
+    ret = np.array([min])
+    for i in range(1, iterations):
+        ret = np.append(ret, min+(step*i))
+    return ret
+
+
 def keygen(sigma):
     np.random.seed()
     alpha = np.random.uniform(0.2, 1.0)
@@ -14,7 +21,8 @@ def keygen(sigma):
     s = 0.0
     while s <= 0.0:
         s = np.random.normal(0.0, math.sqrt(sigmaStar))
-    return s, alpha, sigmaStar
+    k = np.random.randint(2147483647)
+    return s, alpha, sigmaStar, k
 
 
 def genPoint(d, lower, upper):
@@ -31,31 +39,37 @@ def genSetPoints(d, num, lower, upper):
     return ret
 
 
-def p(pnt, s, a, sigmaStar):
-    total = 0.0
-    for i in pnt:
-        total += i
+def badHash(num, k):
+    np.random.seed((num * k) % 2147483648)
+    return np.random.randint(2147483647)
+
+
+def p(pnt, s, a, sigmaStar, randNum, k):
     ret = np.full(shape=pnt.shape, fill_value=sys.float_info.max)
-    np.random.seed(int(math.fabs(math.trunc(total * 1000) + s + a)))
+    np.random.seed(badHash(randNum, k))
+    bound = s * a / (math.sqrt(len(pnt)) * 4)
     for i in range(0, len(ret)):
-        while math.fabs(ret[i]) > s * a / (math.sqrt(len(pnt)) * 4):
+        while math.fabs(ret[i]) > bound:
             ret[i] = np.random.normal(0.0, math.sqrt(sigmaStar))
     return ret
 
 
-def encryptSingle(x, s, a, sigmaStar):
+def encryptSingle(x, s, a, sigmaStar, k):
     ret = np.zeros(shape=x.shape)
-    pVal = p(x, s, a, sigmaStar)
+    rand = np.random.randint(2147483647)
+    pVal = p(x, s, a, sigmaStar, rand, k)
     for i in range(0, len(x)):
         ret[i] = x[i] * s + pVal[i]
-    return ret
+    return ret, rand
 
 
-def encryptArr(x, s, a, sigmaStar):
+def encryptArr(x, s, a, sigmaStar, k):
     encX = np.zeros(shape=x.shape)
+    nums = np.array(0, dtype=type(1))
     for i in range(0, len(x)):
-        encX[i] = encryptSingle(x[i], s, a, sigmaStar)
-    return encX
+        encX[i], num = encryptSingle(x[i], s, a, sigmaStar, k)
+        nums = np.append(nums, num)
+    return encX, np.delete(nums, [0], axis=0)
 
 
 def nearestNeighbor(point, neighbors):
@@ -74,26 +88,26 @@ def plotPDist(num):
     for i in range(0, num):
         s, a, sigmaStar = keygen(50)
         x = genPoint(2, 0, 15)
-        pVal = p(x, s, a, sigmaStar)
+        pVal = p(x, s, a, sigmaStar, i)
         portions[i] = math.fabs((np.linalg.norm(pVal) - math.fabs(s * a / 4)) / (s * a / 4))
     plot.hist(portions)
     plot.suptitle("Distribution of p values divided by sa/4")
     plot.show()
 
 
-def getNeighbors(query, neighborhood, s, a, sigmaStar):
+def getNeighbors(query, neighborhood, s, a, sigmaStar, k):
     normNeighbors = np.zeros(shape=len(query))
     encNeighbors = np.zeros(shape=len(query))
-    encQuery = encryptArr(query, s, a, sigmaStar)
-    encNeighborhood = encryptArr(neighborhood, s, a, sigmaStar)
+    encQuery, nums = encryptArr(query, s, a, sigmaStar, k)
+    encNeighborhood, nums = encryptArr(neighborhood, s, a, sigmaStar, k)
     for i in range(0, len(query)):
         normNeighbors[i] = int(nearestNeighbor(query[i], neighborhood))
         encNeighbors[i] = int(nearestNeighbor(encQuery[i], encNeighborhood))
     return normNeighbors, encNeighbors
 
 
-def errorDistance(query, neighborhood, s, a, sigmaStar):
-    norm, enc = getNeighbors(query, neighborhood, s, a, sigmaStar)
+def errorDistance(query, neighborhood, s, a, sigmaStar, k):
+    norm, enc = getNeighbors(query, neighborhood, s, a, sigmaStar, k)
     errorDist = np.zeros(shape=len(query))
     for i in range(0, len(query)):
         if norm[i] != enc[i]:
@@ -146,7 +160,7 @@ def scatter2d(x, sigma=50, enc=False):
         if enc:
             encXCoord = np.zeros(shape=len(x))
             encYCoord = np.zeros(shape=len(x))
-            encSet = encryptArr(x, 1, alpha, sigmaStar)
+            encSet, nums = encryptArr(x, 1, alpha, sigmaStar, 10)
             for i in range(0, len(x)):
                 encXCoord[i] = encSet[i][0]
                 encYCoord[i] = encSet[i][1]
@@ -178,8 +192,8 @@ def statsTrials(trials, sigma, query, neighbors):
     errorRate = np.zeros(shape=trials)
     errorDist = np.zeros(shape=trials)
     for trial in range(0, trials):
-        s, a, sigmaStar = keygen(sigma)
-        errorDists = errorDistance(query, neighbors, s, a, sigmaStar)
+        s, a, sigmaStar, k = keygen(sigma)
+        errorDists = errorDistance(query, neighbors, s, a, sigmaStar, k)
         noZeros = noZerosPlease(errorDists)
         errorRate[trial] = len(noZeros) / len(errorDists)
         errorDist[trial] = np.mean(errorDists)
@@ -192,8 +206,8 @@ def statsTrialsSplit(trials, sigma, points, querySize, neighborSize):
     errorDist = np.zeros(shape=trials)
     for trial in range(0, trials):
         query, neighbors = splitArr(points, querySize, neighborSize)
-        s, a, sigmaStar = keygen(sigma)
-        errorDists = errorDistance(query, neighbors, s, a, sigmaStar)
+        s, a, sigmaStar, k = keygen(sigma)
+        errorDists = errorDistance(query, neighbors, s, a, sigmaStar, k)
         noZeros = noZerosPlease(errorDists)
         errorRate[trial] = len(noZeros) / len(errorDists)
         errorDist[trial] = np.mean(errorDists)
