@@ -5,10 +5,10 @@ import matplotlib.pyplot as plot
 import scipy.spatial.distance as distance
 
 
-def makeArr(step, min, iterations):
-    ret = np.array([min])
+def makeArr(step, iterations):
+    ret = np.array([step])
     for i in range(1, iterations):
-        ret = np.append(ret, min+(step*i))
+        ret = np.append(ret, step+(step*i))
     return ret
 
 
@@ -83,6 +83,19 @@ def nearestNeighbor(point, neighbors):
     return nearestIndex
 
 
+def nearestNeighborOrd(point, neighbors):
+    nearestDist = sys.float_info.max
+    nearestIndex = -1
+    distances = np.zeros(shape=len(neighbors))
+    for n in range(0, len(neighbors)):
+        dist = distance.euclidean(point, neighbors[n])
+        distances[n] = dist
+        if dist < nearestDist:
+            nearestIndex = n
+            nearestDist = dist
+    return nearestIndex, distances
+
+
 def plotPDist(num):
     portions = np.zeros(shape=num)
     for i in range(0, num):
@@ -95,24 +108,32 @@ def plotPDist(num):
     plot.show()
 
 
-def getNeighbors(query, neighborhood, s, a, sigmaStar, k):
+def getNeighbors(query, neighborhood, s, a, sigmaStar, k, ordinal=False):
     normNeighbors = np.zeros(shape=len(query))
     encNeighbors = np.zeros(shape=len(query))
+    offBy = np.zeros(shape=(len(query), len(neighborhood)))
     encQuery, nums = encryptArr(query, s, a, sigmaStar, k)
     encNeighborhood, nums = encryptArr(neighborhood, s, a, sigmaStar, k)
     for i in range(0, len(query)):
-        normNeighbors[i] = int(nearestNeighbor(query[i], neighborhood))
-        encNeighbors[i] = int(nearestNeighbor(encQuery[i], encNeighborhood))
-    return normNeighbors, encNeighbors
+        normNeighbors[i],  offBy[i] = nearestNeighborOrd(query[i], neighborhood)
+        encNeighbors[i] = nearestNeighbor(encQuery[i], encNeighborhood)
+    if ordinal:
+        return normNeighbors, encNeighbors, offBy
+    else:
+        return normNeighbors, encNeighbors
 
 
 def errorDistance(query, neighborhood, s, a, sigmaStar, k):
-    norm, enc = getNeighbors(query, neighborhood, s, a, sigmaStar, k)
+    norm, enc, ordinal = getNeighbors(query, neighborhood, s, a, sigmaStar, k, ordinal=True)
     errorDist = np.zeros(shape=len(query))
+    numBetter = np.zeros(shape=len(query))
     for i in range(0, len(query)):
         if norm[i] != enc[i]:
             errorDist[i] = distance.euclidean(neighborhood[int(norm[i])], neighborhood[int(enc[i])])
-    return errorDist
+            for j in range(0, len(ordinal[i])):
+                if ordinal[i][j] < ordinal[i][int(enc[i])]:
+                    numBetter[i] += 1
+    return errorDist, numBetter
 
 
 def noZerosPlease(values):
@@ -193,7 +214,7 @@ def statsTrials(trials, sigma, query, neighbors):
     errorDist = np.zeros(shape=trials)
     for trial in range(0, trials):
         s, a, sigmaStar, k = keygen(sigma)
-        errorDists = errorDistance(query, neighbors, s, a, sigmaStar, k)
+        errorDists, numBetter = errorDistance(query, neighbors, s, a, sigmaStar, k)
         noZeros = noZerosPlease(errorDists)
         errorRate[trial] = len(noZeros) / len(errorDists)
         errorDist[trial] = np.mean(errorDists)
@@ -204,15 +225,19 @@ def statsTrials(trials, sigma, query, neighbors):
 def statsTrialsSplit(trials, sigma, points, querySize, neighborSize):
     errorRate = np.zeros(shape=trials)
     errorDist = np.zeros(shape=trials)
+    numBetter = np.zeros(shape=trials)
     for trial in range(0, trials):
         query, neighbors = splitArr(points, querySize, neighborSize)
         s, a, sigmaStar, k = keygen(sigma)
-        errorDists = errorDistance(query, neighbors, s, a, sigmaStar, k)
+        errorDists, num = errorDistance(query, neighbors, s, a, sigmaStar, k)
         noZeros = noZerosPlease(errorDists)
         errorRate[trial] = len(noZeros) / len(errorDists)
         errorDist[trial] = np.mean(errorDists)
+        preferred = noZerosPlease(num)
+        if len(preferred) > 0:
+            numBetter[trial] = np.mean(preferred)
         print("\rTrial " + str(trial+1) + " with neighbors " + str(neighborSize) + " complete", end='')
-    return errorRate, errorDist
+    return errorRate, errorDist, numBetter
 
 
 def statsSigmaRange(points, querySize, neighborsSize, sigmaLower, sigmaUpper, trials, step):
@@ -236,7 +261,8 @@ def statsSigmaRange(points, querySize, neighborsSize, sigmaLower, sigmaUpper, tr
 def statsNeighborRange(points, sigma, querySize, neighborSizes, trials):
     rates = np.zeros(shape=(len(neighborSizes), trials))
     dists = np.zeros(shape=(len(neighborSizes), trials))
+    numBetter = np.zeros(shape=(len(neighborSizes), trials))
     for i in range(0, len(neighborSizes)):
-        rates[i], dists[i] = statsTrialsSplit(trials, sigma, points, querySize, neighborSizes[i])
+        rates[i], dists[i], numBetter[i] = statsTrialsSplit(trials, sigma, points, querySize, neighborSizes[i])
         print("\n", neighborSizes[i], "complete")
-    return rates, dists
+    return rates, dists, numBetter
