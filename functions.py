@@ -233,7 +233,8 @@ def statsTrialsSplit(trials, sigma, points, querySize, neighborSize):
         noZeros = noZerosPlease(errorDists)
         errorRate[trial] = len(noZeros) / len(errorDists)
         errorDist[trial] = np.mean(errorDists)
-        preferred = noZerosPlease(num)
+        preferred = num
+        # preferred = noZerosPlease(num)
         if len(preferred) > 0:
             numBetter[trial] = np.mean(preferred)
         print("\rTrial " + str(trial+1) + " with neighbors " + str(neighborSize) + " complete", end='')
@@ -266,3 +267,27 @@ def statsNeighborRange(points, sigma, querySize, neighborSizes, trials):
         rates[i], dists[i], numBetter[i] = statsTrialsSplit(trials, sigma, points, querySize, neighborSizes[i])
         print("\n", neighborSizes[i], "complete")
     return rates, dists, numBetter
+
+
+def statsDump(trials, configs, points, querySize, neighborSize, sigma):
+    errorRate = np.zeros(shape=trials)
+    errorDist = np.zeros(shape=trials)
+    numBetter = np.zeros(shape=trials)
+    configRet = np.zeros(shape=(configs, 3))
+    storage = np.zeros(shape=(configs, 3, trials))
+    for config in range(0, configs):
+        s, alpha, sigmaStar, k = keygen(sigma)
+        configRet[config][0] = s
+        configRet[config][1] = alpha
+        configRet[config][2] = sigmaStar
+        for trial in range(0, trials):
+            query, neighbors = splitArr(points, querySize, neighborSize)
+            errorDists, num = errorDistance(query, neighbors, s, alpha, sigmaStar, k)
+            noZeros = noZerosPlease(errorDists)
+            errorRate[trial] = len(noZeros) / len(errorDists)
+            errorDist[trial] = np.mean(errorDists)
+            numBetter[trial] = np.mean(num)
+        storage[config][0] = errorRate
+        storage[config][1] = errorDist
+        storage[config][2] = numBetter
+    return configRet, storage

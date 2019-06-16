@@ -3,31 +3,44 @@ import numpy as np
 import matplotlib.pyplot as plot
 
 
-cal = np.delete(np.loadtxt("C:\\Users\\Elise\\PycharmProjects\\DCPEncryption\\venv\\cal.txt"), 0, 1)
-iris = np.delete(np.loadtxt("C:\\Users\\Elise\\PycharmProjects\\DCPEncryption\\venv\\iris.txt"), 0, 1)
+# iris = np.delete(np.loadtxt("iris.txt"), 0, 1)
+cal = np.delete(np.loadtxt("cal.txt"), 0, 1)
+river = np.loadtxt('river.csv', delimiter=',', usecols=(0, 1), skiprows=1, dtype=type(1.1))
+mili = np.loadtxt('military.csv', delimiter=',', usecols=(0, 1), skiprows=1, dtype=type("t"))
+military = np.zeros(shape=mili.shape)
+for i in range(0, len(mili)):
+    military[i][0] = float(np.char.strip(mili[i][0], '"'))
+    military[i][1] = float(np.char.strip(mili[i][1], ' "'))
+
 querySize = 25
 neighborSize = 125
-neighborSizes = fn.makeArr(25, 10)
+neighborSizes = fn.makeArr(25, 5)
 sigmaLower = 0.1
 sigmaUpper = 3
 trials = 50
 step = 0.1
-ratesNeigh, distsNeigh, betterNeigh = fn.statsNeighborRange(cal, 50, 25, neighborSizes, trials)
+ratesNeigh, distsNeigh, betterNeigh = fn.statsNeighborRange(military, 50, 25, neighborSizes, trials)
 ratesMean = np.zeros(shape=len(neighborSizes))
 distsMean = np.zeros(shape=len(neighborSizes))
 betterMean = np.zeros(shape=len(neighborSizes))
 for i in range(0, len(neighborSizes)):
     ratesMean[i] = np.mean(ratesNeigh[i])
     distsMean[i] = np.mean(distsNeigh[i])
-    betterMean[i] = np.mean(fn.noZerosPlease(betterNeigh[i]))
+    betterMean[i] = np.mean(betterNeigh[i])
+    # betterMean[i] = np.mean(fn.noZerosPlease(betterNeigh[i]))
 plot.scatter(neighborSizes, ratesMean)
-plot.title("Error rate as a function of neighbor size")
+plot.title("Mean error rate as a function of neighbor size")
+plot.show()
+plot.clf()
+plot.scatter(neighborSizes, distsMean)
+plot.title("Mean error distance as a function of neighbor size")
 plot.show()
 plot.clf()
 plot.scatter(neighborSizes, betterMean)
 plot.title("Mean preferred neighbors as a function of neighbor size")
 plot.axhline(y=1)
 plot.show()
+
 # rateSigma, distSigma = fn.statsSigmaRange(iris, querySize, neighborSize, sigmaLower, sigmaUpper, trials, step)
 # rateIndex = np.argmin(rateSigma)
 # errorIndex = np.argmin(distSigma)
