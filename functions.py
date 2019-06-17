@@ -108,7 +108,7 @@ def plotPDist(num):
     plot.show()
 
 
-def getNeighbors(query, neighborhood, s, a, sigmaStar, k, ordinal=False):
+def getNeighbor(query, neighborhood, s, a, sigmaStar, k, ordinal=False):
     normNeighbors = np.zeros(shape=len(query))
     encNeighbors = np.zeros(shape=len(query))
     offBy = np.zeros(shape=(len(query), len(neighborhood)))
@@ -123,8 +123,24 @@ def getNeighbors(query, neighborhood, s, a, sigmaStar, k, ordinal=False):
         return normNeighbors, encNeighbors
 
 
+def getNeighbors(query, neighborhood, neighbors):
+    ret = np.zeros(shape=(len(query), neighbors))
+    for q in range(0, len(query)):
+        distArr = np.full(shape=neighbors, fill_value=sys.float_info.max)
+        indArr = np.full(shape=neighbors, fill_value=-1)
+        bigIndex = 0
+        for n in range(0, len(neighborhood)):
+            dist = distance.euclidean(query[q], neighborhood[n])
+            if dist < distArr[bigIndex]:
+                distArr[bigIndex] = dist
+                indArr[bigIndex] = n
+                bigIndex = np.argmax(distArr)
+        ret[q] = indArr
+    return ret
+
+
 def errorDistance(query, neighborhood, s, a, sigmaStar, k):
-    norm, enc, ordinal = getNeighbors(query, neighborhood, s, a, sigmaStar, k, ordinal=True)
+    norm, enc, ordinal = getNeighbor(query, neighborhood, s, a, sigmaStar, k, ordinal=True)
     errorDist = np.zeros(shape=len(query))
     numBetter = np.zeros(shape=len(query))
     for i in range(0, len(query)):
@@ -291,3 +307,26 @@ def statsDump(trials, configs, points, querySize, neighborSize, sigma):
         storage[config][1] = errorDist
         storage[config][2] = numBetter
     return configRet, storage
+
+
+def statsParams(trials, alphaVals, sVals, sigmaStarVals, points, querySize, neighborSize, neighborsRet, acceptable):
+    errorRate = np.zeros(shape=(len(alphaVals), len(sVals), len(sigmaStarVals)))
+    k = np.random.randint(50)
+    for alpha in range(0, len(alphaVals)):
+        for s in range(0, len(sVals)):
+            for sigmaStar in range(0, len(sigmaStarVals)):
+                trialRate = np.zeros(shape=trials)
+                for trial in range(0, trials):
+                    query, neighbors = splitArr(points, querySize, neighborSize)
+                    normNeighbors = getNeighbors(query, neighbors, neighborsRet)
+                    encQuery, nums = encryptArr(query, sVals[s], alphaVals[alpha], sigmaStarVals[sigmaStar], k)
+                    encNeighbor, nums = encryptArr(neighbors, sVals[s], alphaVals[alpha], sigmaStarVals[sigmaStar], k)
+                    encNeighbors = getNeighbors(encQuery, encNeighbor, neighborsRet)
+                    wrong = 0
+                    for i in range(0, querySize):
+                        if len(np.setdiff1d(normNeighbors[i], encNeighbors[i])) > acceptable:
+                            wrong += 1
+                    trialRate[trial] = wrong / querySize
+                    print("\r" + str(alpha) + " - " + str(s) + " - " + str(sigmaStar) + " - " + str(trial), end='')
+                errorRate[alpha][s][sigmaStar] = np.mean(trialRate)
+    return errorRate
