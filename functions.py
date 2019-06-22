@@ -128,13 +128,17 @@ def getNeighbors(query, neighborhood, neighbors):
     for q in range(0, len(query)):
         distArr = np.full(shape=neighbors, fill_value=sys.float_info.max)
         indArr = np.full(shape=neighbors, fill_value=-1)
-        bigIndex = 0
         for n in range(0, len(neighborhood)):
             dist = distance.euclidean(query[q], neighborhood[n])
-            if dist < distArr[bigIndex]:
-                distArr[bigIndex] = dist
-                indArr[bigIndex] = n
-                bigIndex = np.argmax(distArr)
+            tempIndexNew = n
+            for i in range(0, neighbors):
+                if distArr[i] > dist:
+                    tempDist = distArr[i]
+                    distArr[i] = dist
+                    dist = tempDist
+                    tempIndexOld = indArr[i]
+                    indArr[i] = tempIndexNew
+                    tempIndexNew = tempIndexOld
         ret[q] = indArr
     return ret
 
@@ -330,3 +334,29 @@ def statsParams(trials, alphaVals, sVals, sigmaStarVals, points, querySize, neig
                     print("\r" + str(alpha) + " - " + str(s) + " - " + str(sigmaStar) + " - " + str(trial), end='')
                 errorRate[alpha][s][sigmaStar] = np.mean(trialRate)
     return errorRate
+
+
+def stuffSValues(sVals, trials, points, querySize, neighborSize):
+    errorRate = np.zeros(shape=(len(sVals), 10, trials))
+    errorDists = np.zeros(shape=(len(sVals), 10, trials))
+    for sIndex in range(0, len(sVals)):
+        for trial in range(0, trials):
+            print("\r" + str(sVals[sIndex]) + " - " + str(trial), end='')
+            dists = np.zeros(shape=(10, querySize))
+            rates = np.zeros(shape=(10, querySize))
+            nope, alpha, sigmaStar, k = keygen(10)
+            query, neighbors = splitArr(points, querySize, neighborSize)
+            normNeighbors = getNeighbors(query, neighbors, 10)
+            encQuery, nums = encryptArr(query, sVals[sIndex], alpha, sigmaStar, k)
+            encNeighbor, nums = encryptArr(neighbors, sVals[sIndex], alpha, sigmaStar, k)
+            encNeighbors = getNeighbors(encQuery, encNeighbor, 10)
+            for i in range(0, querySize):
+                for j in range(0, 10):
+                    if normNeighbors[i][j] != encNeighbors[i][j]:
+                        rates[j][i] = 1.
+                        dists[j][i] = distance.euclidean(neighbors[int(normNeighbors[i][j])],
+                                                         neighbors[int(encNeighbors[i][j])])
+            for i in range(0, 10):
+                errorRate[sIndex][i][trial] = np.mean(rates[i])
+                errorDists[sIndex][i][trial] = np.mean(dists[i])
+    return errorRate, errorDists

@@ -1,6 +1,6 @@
 import functions as fn
 import numpy as np
-import matplotlib.pyplot as plot
+import matplotlib.pyplot as plt
 
 
 # iris = np.delete(np.loadtxt("iris.txt"), 0, 1)
@@ -12,57 +12,59 @@ military = np.zeros(shape=mili.shape)
 for i in range(0, len(mili)):
     military[i][0] = float(np.char.strip(mili[i][0], '"'))
     military[i][1] = float(np.char.strip(mili[i][1], ' "'))
+dataSets = [cal, river, military]
+dataLabels = ["California", "River", "Military"]
+dataColors = ['red', 'blue', 'green']
 
-alphaVals = fn.makeArr(0.05, 20)
-sVals = [0.5, 1.2, 2.4]
-sigmaStarVals = [15.2, 1.8, 6.7]
-stuff = fn.statsParams(100, alphaVals, sVals, sigmaStarVals, military, 5, 25, 5, 0)
-things = np.zeros(shape=len(alphaVals))
-for i in range(0, len(alphaVals)):
-    things[i] = np.mean(stuff[i])
-plot.scatter(alphaVals, things)
-plot.title("Mean error rate (nonzero error) as a function of alpha")
-plot.show()
-
-# querySize = 25
-# neighborSize = 125
-# neighborSizes = fn.makeArr(25, 5)
-# sigmaLower = 0.1
-# sigmaUpper = 3
-# trials = 50
-# step = 0.1
-# ratesNeigh, distsNeigh, betterNeigh = fn.statsNeighborRange(military, 50, 25, neighborSizes, trials)
-# ratesMean = np.zeros(shape=len(neighborSizes))
-# distsMean = np.zeros(shape=len(neighborSizes))
-# betterMean = np.zeros(shape=len(neighborSizes))
-# for i in range(0, len(neighborSizes)):
-#     ratesMean[i] = np.mean(ratesNeigh[i])
-#     distsMean[i] = np.mean(distsNeigh[i])
-#     betterMean[i] = np.mean(betterNeigh[i])
-#     # betterMean[i] = np.mean(fn.noZerosPlease(betterNeigh[i]))
-# plot.scatter(neighborSizes, ratesMean)
-# plot.title("Mean error rate as a function of neighbor size")
-# plot.show()
-# plot.clf()
-# plot.scatter(neighborSizes, distsMean)
-# plot.title("Mean error distance as a function of neighbor size")
-# plot.show()
-# plot.clf()
-# plot.scatter(neighborSizes, betterMean)
-# plot.title("Mean preferred neighbors as a function of neighbor size")
-# plot.axhline(y=1)
-# plot.show()
-
-# rateSigma, distSigma = fn.statsSigmaRange(iris, querySize, neighborSize, sigmaLower, sigmaUpper, trials, step)
-# rateIndex = np.argmin(rateSigma)
-# errorIndex = np.argmin(distSigma)
-# axis = np.zeros(shape=len(rateSigma))
-# for i in range(0, len(rateSigma)):
-#     axis[i] = sigmaLower + i * step
-# plot.scatter(axis, rateSigma)
-# plot.title("Error rate as a function of sigma")
-# plot.show()
-# plot.clf()
-# plot.scatter(axis, distSigma)
-# plot.title("Mean distance of error as a function of sigma")
-# plot.show()
+sVals = [0.1, 0.5, 2, 4, 10]
+neighborOrdinals = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+trials = 500
+ratesSNeigh = np.zeros(shape=10)
+distsSZero = np.zeros(shape=(len(sVals)))
+ratesSZero = np.zeros(shape=(len(sVals)))
+ratesSNeighSave = np.zeros(shape=(len(dataColors), 10))
+distsSZeroSave = np.zeros(shape=(3, len(sVals)))
+ratesSZeroSave = np.zeros(shape=(3, len(sVals)))
+rate = np.zeros(shape=(3, len(sVals), 10, trials))
+dists = np.zeros(shape=(3, len(sVals), 10, trials))
+for i in range(0, len(dataSets)):
+    print("\n", dataLabels[i], "\n")
+    rate[i], dists[i] = fn.stuffSValues(sVals, trials, dataSets[i], 25, 125)
+for i in range(0, len(dataSets)):
+    for sIndex in range(0, len(sVals)):
+        ratesSZero[sIndex] = np.mean(rate[i][sIndex][0])
+    ratesSZeroSave[i] = ratesSZero
+    plt.plot(sVals, ratesSZero, color=dataColors[i], label=dataLabels[i])
+np.savetxt(fname="C:\\Users\\Elise\\Pictures\\charts\\ratesS.txt", X=ratesSZeroSave, delimiter=',')
+plt.title("Mean error rate as a function of s value")
+plt.gca().set_ylim([0., 0.5])
+ax = plt.subplot(111)
+ax.legend(loc='upper right', bbox_to_anchor=(0.5, 1.0), shadow=True, ncol=2)
+plt.savefig("C:\\Users\\Elise\\Pictures\\charts\\ratesS")
+plt.clf()
+for i in range(0, len(dataSets)):
+    for sIndex in range(0, len(sVals)):
+        distsSZero[sIndex] = np.mean(dists[i][sIndex][0])
+    distsSZeroSave[i] = distsSZero
+    plt.plot(sVals, distsSZero, color=dataColors[i], label=dataLabels[i])
+np.savetxt(fname="C:\\Users\\Elise\\Pictures\\charts\\distsS.txt", X=distsSZeroSave, delimiter=',')
+plt.title("Mean error magnitude as a function of s value")
+plt.gca().set_ylim([0., 0.5])
+ax = plt.subplot(111)
+ax.legend(loc='upper right', bbox_to_anchor=(0.5, 1.0), shadow=True, ncol=2)
+plt.savefig("C:\\Users\\Elise\\Pictures\\charts\\distsS")
+plt.clf()
+for sIndex in range(0, len(sVals)):
+    for i in range(0, len(dataSets)):
+        for neigh in range(0, 10):
+            ratesSNeigh[neigh] = np.mean(rate[i][sIndex][neigh])
+            ratesSNeighSave[i] = ratesSNeigh
+        plt.plot(neighborOrdinals, ratesSNeigh, color=dataColors[i], label=dataLabels[i])
+    np.savetxt(fname="C:\\Users\\Elise\\Pictures\\charts\\ratesOrd" + str(sIndex) + ".txt",
+               X=ratesSNeighSave, delimiter=',')
+    plt.title("Mean error rate versus ordinality for s = " + str(sVals[sIndex]))
+    plt.gca().set_ylim([0., 1.])
+    ax = plt.subplot(111)
+    ax.legend(loc='upper right', bbox_to_anchor=(0.5, 1.0), shadow=True, ncol=2)
+    plt.savefig("C:\\Users\\Elise\\Pictures\\charts\\rateOrd" + str(sIndex))
+    plt.clf()
