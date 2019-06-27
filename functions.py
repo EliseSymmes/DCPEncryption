@@ -360,3 +360,79 @@ def stuffSValues(sVals, trials, points, querySize, neighborSize):
                 errorRate[sIndex][i][trial] = np.mean(rates[i])
                 errorDists[sIndex][i][trial] = np.mean(dists[i])
     return errorRate, errorDists
+
+
+def stuffAValues(aVals, trials, points, querySize, neighborSize):
+    errorRate = np.zeros(shape=(len(aVals), 10, trials))
+    errorDists = np.zeros(shape=(len(aVals), 10, trials))
+    for aIndex in range(0, len(aVals)):
+        for trial in range(0, trials):
+            print("\r" + str(aVals[aIndex]) + " - " + str(trial), end='')
+            dists = np.zeros(shape=(10, querySize))
+            rates = np.zeros(shape=(10, querySize))
+            nope, alpha, sigmaStar, k = keygen(10)
+            query, neighbors = splitArr(points, querySize, neighborSize)
+            normNeighbors = getNeighbors(query, neighbors, 10)
+            encQuery, nums = encryptArr(query, 0.5, aVals[aIndex], sigmaStar, k)
+            encNeighbor, nums = encryptArr(neighbors, 0.5, aVals[aIndex], sigmaStar, k)
+            encNeighbors = getNeighbors(encQuery, encNeighbor, 10)
+            for i in range(0, querySize):
+                for j in range(0, 10):
+                    if normNeighbors[i][j] != encNeighbors[i][j]:
+                        rates[j][i] = 1.
+                        dists[j][i] = distance.euclidean(neighbors[int(normNeighbors[i][j])],
+                                                         neighbors[int(encNeighbors[i][j])])
+            for i in range(0, 10):
+                errorRate[aIndex][i][trial] = np.mean(rates[i])
+                errorDists[aIndex][i][trial] = np.mean(dists[i])
+    return errorRate, errorDists
+
+
+def rateSA(sVals, aVals, points, trials):
+    ret = np.zeros(shape=len(sVals))
+    for i in range(0, len(sVals)):
+        trialSet = np.zeros(shape=trials)
+        for trial in range(0, trials):
+            print("\r" + str(i) + " - " + str(trial), end='')
+            rateNeigh = np.zeros(shape=25)
+            _, _, sigmaStar, k = keygen(50)
+            query, neighbors = splitArr(points, 25, 125)
+            normNeighbors = getNeighbors(query, neighbors, 1)
+            encQuery, nums = encryptArr(query, sVals[i], aVals[i], sigmaStar, k)
+            encNeighbor, nums = encryptArr(neighbors, sVals[i], aVals[i], sigmaStar, k)
+            encNeighbors = getNeighbors(encQuery, encNeighbor, 1)
+            for j in range(0, 25):
+                if normNeighbors[j] != encNeighbors[j]:
+                    rateNeigh[j] = 1.
+            trialSet[trial] = np.mean(rateNeigh)
+        ret[i] = np.mean(trialSet)
+    return ret
+
+
+def knnRates(points, trials, numNeigh):
+    storage = np.zeros(shape=(numNeigh, trials, 25))
+    for trial in range(0, trials):
+        print("\r" + str(trial), end='')
+        s, alpha, sigmaStar, k = keygen(50)
+        query, neighbors = splitArr(points, 25, 125)
+        normNeighbors = getNeighbors(query, neighbors, numNeigh)
+        encQuery, nums = encryptArr(query, s, alpha, sigmaStar, k)
+        encNeighbor, nums = encryptArr(neighbors, s, alpha, sigmaStar, k)
+        encNeighbors = getNeighbors(encQuery, encNeighbor, numNeigh)
+        for q in range(0, 25):
+            for i in range(0, numNeigh):
+                tmp = np.zeros(shape=i+1)
+                for j in range(0, i+1):
+                    k = 0
+                    while k <= i:
+                        if normNeighbors[q][j] != encNeighbors[q][k]:
+                            tmp[j] = 1
+                            k += 1
+                        else:
+                            tmp[j] = 0
+                            k = i+1
+                storage[i][trial][q] = np.mean(tmp)
+    ret = np.zeros(shape=numNeigh)
+    for i in range(0, numNeigh):
+        ret[i] = np.mean(storage[i])
+    return ret
